@@ -18,6 +18,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Nova // PR & Task Dashboard",
   description: "A premium, unified hub for tracking GitHub pull requests and developer tasks.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
