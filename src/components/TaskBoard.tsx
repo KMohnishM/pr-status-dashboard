@@ -639,23 +639,29 @@ export default function TaskBoard() {
               </div>
 
               {(!prUrl && boardType === 'daily') ? null : (
-              <div className="settings-group">
-                <label htmlFor="task-pr">Link Pull Request</label>
-                <select
-                  id="task-pr"
-                  className="form-select"
-                  value={prUrl}
-                  onChange={(e) => setPrUrl(e.target.value)}
-                >
-                  <option value="">-- No Linked PR --</option>
-                  {prs.map((pr) => (
-                    <option key={pr.id} value={pr.url}>
-                      {pr.repository.name} #{pr.number} - {pr.title.substring(0, 30)}...
-                    </option>
-                  ))}
-                </select>
-                <p>Connecting a task to a PR pulls live merge, review, and checks statuses onto your card.</p>
-              </div>
+                <div className="settings-group">
+                  <label htmlFor="task-pr">Link Pull Request</label>
+                  {!settings?.token ? (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-glass)', margin: '0.25rem 0' }}>
+                      Connect your GitHub account in Settings to link this task to a live pull request.
+                    </p>
+                  ) : (
+                    <select
+                      id="task-pr"
+                      className="form-select"
+                      value={prUrl}
+                      onChange={(e) => setPrUrl(e.target.value)}
+                    >
+                      <option value="">-- No Linked PR --</option>
+                      {prs.map((pr) => (
+                        <option key={pr.id} value={pr.url}>
+                          {pr.repository.name} #{pr.number} - {pr.title.substring(0, 30)}...
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <p>Connecting a task to a PR pulls live merge, review, and checks statuses onto your card.</p>
+                </div>
               )}
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>

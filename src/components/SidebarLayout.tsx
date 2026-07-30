@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSettings } from '../hooks/useSettings';
 
+// Browser-native SHA-256 hashing
+const hashPasscode = async (passcode: string): Promise<string> => {
+  const msgBuffer = new TextEncoder().encode(passcode);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+
 interface SidebarLayoutProps {
   children: React.ReactNode;
 }
@@ -22,6 +30,11 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [validationSuccess, setValidationSuccess] = useState(false);
 
+  // Lock and Security states
+  const [newPasscode, setNewPasscode] = useState('');
+  const [hasPasscode, setHasPasscode] = useState(false);
+  const [passcodeSuccess, setPasscodeSuccess] = useState(false);
+
   // Load settings into local state when they are retrieved
   useEffect(() => {
     if (settings) {
@@ -34,15 +47,49 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     }
   }, [settings]);
 
-  // Open settings if token is missing
-  useEffect(() => {
-    if (isLoaded && settings && !settings.token) {
-      const timer = setTimeout(() => {
-        setIsSettingsOpen(true);
-      }, 0);
-      return () => clearTimeout(timer);
+  // Passcode status sync
+  const checkPasscodeStatus = () => {
+    if (typeof window !== 'undefined') {
+      setHasPasscode(!!localStorage.getItem('nova_passcode_hash'));
     }
-  }, [isLoaded, settings]);
+  };
+
+  useEffect(() => {
+    checkPasscodeStatus();
+    window.addEventListener('nova_security_updated', checkPasscodeStatus);
+    return () => window.removeEventListener('nova_security_updated', checkPasscodeStatus);
+  }, []);
+
+  const handleLockWorkspace = () => {
+    sessionStorage.removeItem('nova_session_authenticated');
+    window.dispatchEvent(new Event('nova_security_updated'));
+  };
+
+  const handleSavePasscode = async () => {
+    setPasscodeSuccess(false);
+    if (!newPasscode.trim()) {
+      // Disable passcode
+      localStorage.removeItem('nova_passcode_hash');
+      sessionStorage.removeItem('nova_session_authenticated');
+      setNewPasscode('');
+      window.dispatchEvent(new Event('nova_security_updated'));
+      setPasscodeSuccess(true);
+      setTimeout(() => setPasscodeSuccess(false), 2000);
+      return;
+    }
+
+    try {
+      const hash = await hashPasscode(newPasscode.trim());
+      localStorage.setItem('nova_passcode_hash', hash);
+      sessionStorage.setItem('nova_session_authenticated', 'true');
+      setNewPasscode('');
+      window.dispatchEvent(new Event('nova_security_updated'));
+      setPasscodeSuccess(true);
+      setTimeout(() => setPasscodeSuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to hash passcode:', err);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +213,24 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
         </svg>
       ),
     },
+    {
+      name: 'Placements',
+      href: '/placements',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+          <path d="M8 14h.01" />
+          <path d="M12 14h.01" />
+          <path d="M16 14h.01" />
+          <path d="M8 18h.01" />
+          <path d="M12 18h.01" />
+          <path d="M16 18h.01" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -196,7 +261,7 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
         </ul>
 
         {/* Sidebar Footer / Settings Trigger */}
-        <div className="sidebar-footer">
+        <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="btn btn-secondary"
@@ -209,8 +274,23 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
             <span className="user-profile-name" style={{ marginLeft: '0.75rem' }}>Settings</span>
           </button>
 
+          {hasPasscode && (
+            <button
+              onClick={handleLockWorkspace}
+              className="btn btn-secondary"
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.65rem 1rem' }}
+              title="Lock Workspace"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span className="user-profile-name" style={{ marginLeft: '0.75rem' }}>Lock Session</span>
+            </button>
+          )}
+
           {isLoaded && settings?.username && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem', padding: '0 0.5rem' }} className="user-profile-name">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', padding: '0 0.5rem' }} className="user-profile-name">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={settings.avatarUrl}
@@ -357,6 +437,49 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
                 style={{ width: '100%', marginTop: '0.5rem' }}
               >
                 Save Preferences
+              </button>
+            </div>
+
+            <div className="settings-section">
+              <h3>Security (Local Lock)</h3>
+              <p>Set a lock passcode to encrypt and protect your dashboard on this device.</p>
+              
+              <div className="settings-group">
+                <label htmlFor="passcode-input">
+                  {hasPasscode ? 'Change / Disable Passcode' : 'New Passcode'}
+                </label>
+                <div className="input-group">
+                  <span className="input-icon" style={{ left: '0.85rem' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <input
+                    id="passcode-input"
+                    type="password"
+                    className="form-input"
+                    style={{ paddingLeft: '2.25rem' }}
+                    placeholder={hasPasscode ? 'Enter new passcode (or leave blank to disable)' : 'Enter passcode'}
+                    value={newPasscode}
+                    onChange={(e) => setNewPasscode(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {passcodeSuccess && (
+                <div className="badge badge-success" style={{ width: '100%', justifyContent: 'center', padding: '0.5rem' }}>
+                  Passcode updated successfully!
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSavePasscode}
+                className="btn btn-secondary"
+                style={{ width: '100%', marginTop: '0.5rem' }}
+              >
+                {hasPasscode && !newPasscode ? 'Disable Lock Passcode' : 'Save Passcode'}
               </button>
             </div>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import AuthGate from "../components/AuthGate";
 
 const outfit = Outfit({
   variable: "--font-heading",
@@ -27,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${plusJakartaSans.variable}`}>
       <body>
-        {children}
+        <AuthGate>
+          {children}
+        </AuthGate>
       </body>
     </html>
   );
