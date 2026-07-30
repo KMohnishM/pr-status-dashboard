@@ -315,18 +315,22 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
       {/* Settings Drawer Slide-Over */}
       {isSettingsOpen && (
-        <div className="modal-overlay" onClick={() => settings?.token && setIsSettingsOpen(false)}>
+        <div className="modal-overlay" onClick={() => setIsSettingsOpen(false)}>
           <div className="settings-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <h2 style={{ fontSize: '1.25rem' }}>Nova Settings</h2>
-              {settings?.token && (
-                <button className="drawer-close" onClick={() => setIsSettingsOpen(false)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
+              <button
+                type="button"
+                className="drawer-close"
+                onClick={() => setIsSettingsOpen(false)}
+                aria-label="Close settings"
+                title="Close settings"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
 
             <form onSubmit={handleSave} className="settings-section">
