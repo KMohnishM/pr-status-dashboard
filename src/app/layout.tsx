@@ -15,11 +15,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["300", "400", "500", "600", "700"],
 });
 
+const basePath = process.env.GITHUB_ACTIONS === "true" ? "/pr-status-dashboard" : "";
+
 export const metadata: Metadata = {
   title: "Nova // PR & Task Dashboard",
   description: "A premium, unified hub for tracking GitHub pull requests and developer tasks.",
   icons: {
-    icon: "/icon.svg",
+    icon: `${basePath}/icon.svg`,
   },
 };
 
